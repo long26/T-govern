@@ -1,0 +1,5 @@
+INFO [07-15|10:00:21.500] E2E_TIMING stage=edit_execution event=tee_authorized_received join_key=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa tee_host=host-b epoch=1 status=accepted
+INFO [07-15|10:00:22.000] E2E_TIMING stage=edit_execution event=execute_redaction_tx_submitted join_key=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa tx_hash=0x2222222222222222222222222222222222222222222222222222222222222222 tee_host=host-b
+INFO [07-15|10:00:23.000] E2E_TIMING stage=edit_execution event=execute_redaction_receipt_success join_key=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa tx_hash=0x2222222222222222222222222222222222222222222222222222222222222222 tee_host=host-b receipt_block_number=31 status=1
+INFO [07-15|10:00:40.100] TEE host starting DKRS oldEpoch=1 newEpoch=2 receiverIndex=2
+INFO [07-15|10:00:42.000] TEE host extracted DKRS receiverIndex=2

@@ -1,0 +1,10 @@
+INFO [07-15|10:00:21.000] E2E_TIMING stage=edit_execution event=tee_authorized_received join_key=0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA tee_host=host-a epoch=1 status=accepted
+INFO [07-15|10:00:21.750] E2E_TIMING stage=edit_execution event=execute_redaction_tx_submitted join_key=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa tx_hash=0x1111111111111111111111111111111111111111111111111111111111111111 tee_host=host-a
+INFO [07-15|10:00:22.000] E2E_TIMING stage=edit_execution event=execute_redaction_receipt_failed join_key=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa tx_hash=0x1111111111111111111111111111111111111111111111111111111111111111 tee_host=host-a receipt_block_number=30 status=0 reason=status_0
+INFO [07-15|10:00:26.000] E2E_TIMING stage=edit_execution event=tee_authorized_received join_key=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb tee_host=host-a epoch=1 status=accepted
+INFO [07-15|10:00:26.500] E2E_TIMING stage=edit_execution event=execute_redaction_tx_submitted join_key=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb tx_hash=0x3333333333333333333333333333333333333333333333333333333333333333 tee_host=host-a
+INFO [07-15|10:00:27.000] E2E_TIMING stage=edit_execution event=execute_redaction_receipt_failed join_key=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb tx_hash=0x3333333333333333333333333333333333333333333333333333333333333333 tee_host=host-a receipt_block_number=34 status=0 reason=status_0
+INFO [07-15|10:00:28.000] E2E_TIMING stage=edit_execution event=tee_authorized_received join_key=cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc tee_host=host-a epoch=1 status=accepted
+INFO [07-15|10:00:29.000] E2E_TIMING stage=edit_execution event=execute_redaction_submit_failed join_key=cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc tee_host=host-a reason=invalid_tx_hash
+INFO [07-15|10:00:40.000] TEE host starting DKRS oldEpoch=1 newEpoch=2 receiverIndex=1
+INFO [07-15|10:00:43.000] TEE host extracted DKRS receiverIndex=1

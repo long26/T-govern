@@ -1,0 +1,16 @@
+[sgx-l5] [07-15|10:00:00.000] [+0ms] PERF_ANCHOR stage=system_init event=chain_init_begin
+[sgx-l5] [07-15|10:00:01.000] [+1000ms] PERF_ANCHOR stage=system_init event=chain_init_complete nodes=4
+[sgx-l5] [07-15|10:00:01.000] [+1000ms] PERF_ANCHOR stage=system_init event=contract_deploy_begin
+[sgx-l5] [07-15|10:00:03.000] [+3000ms] PERF_ANCHOR stage=system_init event=contract_deployed contract=0x1234
+[sgx-l5] [07-15|10:00:03.000] [+3000ms] PERF_ANCHOR stage=system_init event=node_startup_begin
+[sgx-l5] [07-15|10:00:05.000] [+5000ms] PERF_ANCHOR stage=system_init event=node_startup_complete nodes=4
+[sgx-l5] [07-15|10:00:05.000] [+5000ms] PERF_ANCHOR stage=system_init event=committee_dkg_begin members=4
+[sgx-l5] [07-15|10:00:08.000] [+8000ms] PERF_ANCHOR stage=system_init event=committee_pubkey_registered threshold=3
+[sgx-l5] [07-15|10:00:08.000] [+8000ms] PERF_ANCHOR stage=tee_registration event=tee_registration_begin candidates=2
+[sgx-l5] [07-15|10:00:12.000] [+12000ms] PERF_ANCHOR stage=tee_registration event=tee_registered node=node2 tee_index=1
+[sgx-l5] [07-15|10:00:17.000] [+17000ms] PERF_ANCHOR stage=tee_registration event=tee_registered node=node3 tee_index=2
+[sgx-l5] [07-15|10:00:18.000] [+18000ms] PERF_ANCHOR stage=tee_registration event=active_set_bootstrapped active_count=2 block=20
+[sgx-l5] [07-15|10:00:18.000] [+18000ms] PERF_ANCHOR stage=system_init event=tee_pkch_begin block=20
+[sgx-l5] [07-15|10:00:22.000] [+22000ms] PERF_ANCHOR stage=system_init event=pkch_ready version=1
+[sgx-l5] [07-15|10:00:20.000] [+20000ms] PERF_ANCHOR stage=measurement_window event=measurement_begin
+[sgx-l5] [07-15|10:00:45.000] [+45000ms] PERF_ANCHOR stage=measurement_window event=measurement_end

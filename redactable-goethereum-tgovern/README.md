@@ -1,0 +1,401 @@
+# 启动
+0. 环境配置
+```shell
+Geth Version: 1.9.11-stable
+```
+1. 编译项目
+```shell
+make geth
+```
+2. 创建账户
+```shell
+./build/bin/geth --datadir ./data account new
+```
+密码为空，直接两个回车，然后得到一串地址。将地址添加到genesis.json中，示例如下
+```shell
+"alloc": {
+    "0x8Cd8e293a012aaeB00475ce117A801640817D27d": { "balance": "1000000000000" }
+}
+```
+3. 初始化
+```shell
+./build/bin/geth --datadir ./data init genesis.json
+```
+4. 启动私链
+`windows`下启动命令(windows系统的vmware虚拟机中运行linux系统（共享文件）时，需要去掉--ipcdisable参数，)
+```shell
+./build/bin/geth --datadir ./data --networkid 123 --rpc --rpcapi "admin,eth,debug,miner,net,txpool,personal,web3" --allow-insecure-unlock console --ipcdisable
+```
+`linux`下启动命令
+```shell
+./build/bin/geth --datadir ./data --networkid 123 --rpc --rpcapi "admin,eth,debug,miner,net,txpool,personal,web3" --allow-insecure-unlock console
+```
+5. Eth常用命令
+
+```shell
+// 测试是否给账户分配余额
+eth.getBalance(eth.accounts[0])
+// 挖矿
+miner.start()
+// 查看区块高度
+eth.blockNumber
+// 停止挖矿
+miner.stop()
+// 获取创世区块
+eth.getBlock(0)
+// 查看账户
+eth.accounts
+// 创建账户
+personal.newAccount("123")
+// 设置etherbase
+miner.setEtherbase(eth.accounts[0])
+// 转账
+eth.blockNumber
+user1=eth.accounts[0]
+user2=eth.accounts[1]
+eth.getBalance(user1)
+eth.getBalance(user2)
+amount = web3.toWei(5,'ether')
+eth.sendTransaction({from: user1, to: user2, value: amount})
+// 获取区块信息
+eth.getBlock(1) // 0是创世区块，1是第一个区块
+
+
+```
+6. 注意事项
+* 每次重新创建账户之前，需要删除data文件夹下的geth文件夹
+
+# SGX L5 计时结果
+
+`scripts/sgx_l5_sim_e2e.py` 会同时写入脚本 `PERF_ANCHOR` 和 geth
+`E2E_TIMING` 事件。运行结束后使用：
+
+```shell
+python3 scripts/collect-l5-timing.py --threshold <DKRS阈值>
+```
+
+例如 16 个 TEE Host、`t=9` 的测试必须传入 `--threshold 9`。结果位于
+`.tmp/sgx-l5-sim/timing/`。V2 headline 阶段包括：
+
+- `system_init`：链/datadir、节点启动、合约部署、委员会 DKG/公钥注册和 TEE `pkCH` 生成的分段和，不含 TEE 注册；
+- `tee_registration`：首个注册操作至活跃集 bootstrap，单独报告；
+- `block_generation` / `block_validation`：只使用正式测量窗口内 `status=ok` 的记录，并按 `txs>0`（headline）和 `txs=0` 分层；
+- `edit_execution`：TEE Host 最早收到授权至任一 Host 最早返回有效 `ExecuteRedaction` 交易哈希，不包含 receipt 等待；
+- `execute_redaction_confirmation`：同一 `reqID + txHash` 的提交至 `status=1` receipt；
+- `ledger_update`：ON 节点首次收到 `TxModifyMsg` 至验证并成功写入本地区块，不含轻量节点、TEE Host 和脚本重放轮询。
+- `rotation_flow`：每个 epoch 最早 DKRS start 至第 `--threshold` 个唯一 Host 完成 extraction。
+
+阶段 CSV 同时保留原始与 Tukey far-outlier 过滤后的均值，并输出 `raw_count`、`used_count`、
+`excluded_count`、`excluded_rate`、`raw_mean`、`filtered_mean`、p50、p95、p99 和 max（耗时单位均为 ms）。
+`l5-timing-summary.json` 保留全部原始事件、逐请求样本、统计学删值标记、失败 receipt、完整性告警、
+未配对事件和重复消息。详细口径和规模编排说明见
+[`docs/sgx_l5_large_light_nodes.md`](docs/sgx_l5_large_light_nodes.md)。
+
+# 模块阅读
+## 1. `accounts`模块
+功能：实现以太坊账户管理，包括账户创建、账户导入、账户管理等功能。
+* `accounts.go` 定义Account、Wallet等结构体，实现账户创建、导入、管理等功能
+* `url.go` 解析url
+* `sort.go` 账户排序
+* `hd.go` 用于处理以太坊钱包的派生路径（Derivation Path），主要功能是实现 BIP-32、BIP-44 和 SLIP-44 规范中定义的层级确定性钱包（Hierarchical Deterministic Wallet）的路径解析和序列化
+* `manager.go` 配置管理、动态钱包事务管理、多后端（后端是用来管理钱包的）管理、钱包和账户同步。
+* `bind/` 用于将Go类型绑定到以太坊智能合约的ABI（Application Binary Interface）编码和解码
+
+## 2. `chameleon`模块
+功能：变色龙哈希实现
+
+## 3. `cmd`
+功能：实现命令行工具，包括账户管理、交易管理、区块管理、节点管理等功能。
+* `ethkey/generate.go` 用于生成以太坊账户的私钥和公钥对
+* `ethkey/inspect.go` 用于检查以太坊账户的私钥和公钥对
+* `ethkey/message.go` 用于对消息进行签名和验证签名。它使用了 Ethereum 的加密机制和密钥管理功能。
+
+## 4. `consensus`
+功能：实现共识算法，包括pow、clique等算法。
+* `consensus.go` 定义了以太坊共识引擎的接口和相关功能，包括区块头和区块的验证、密封、难度计算以及状态修改等
+* `misc/dao.go` 用于实现以太坊 DAO（去中心化自治组织）硬分叉的相关功能，主要包括验证区块头的额外数据（extra-data）是否符合 DAO 硬分叉规则，以及根据硬分叉规则修改状态数据库，将特定 DAO 账户的余额转移到退款合约中。
+* `misc/forks.go` 用于验证区块头的哈希值是否符合网络硬分叉（hard-fork）的预期哈希值，以避免客户端在分叉后走错链。
+* `ethash/algorithm.go` 定义了以太坊 Ethash 共识算法的核心功能，包括计算难度、生成挖矿用的缓存和数据集，以及验证工作量证明（Proof of Work）
+* `ethash/consensus.go` 实现了以太坊 Ethash 共识算法的核心功能，包括计算难度调整、验证区块头、处理叔块奖励以及挖矿相关的逻辑。
+  * `func verifyHeader` **验证区块头**
+* `ethash/ethash.go` 实现了以太坊 Ethash 共识算法的核心功能，包括挖矿难度调整、区块验证、缓存和数据集的生成与管理，以及挖矿相关的逻辑。
+* `ethash/sealer.go` 实现了以太坊的 Ethash 共识算法，包括本地挖矿和远程挖矿功能。本地挖矿通过多线程搜索满足难度要求的 nonce，远程挖矿则通过 HTTP 通知外部矿工并验证其提交的工作量证明结果。
+* `clique/clique.go` 实现了以太坊的 Clique 共识算法，用于支持权威证明（Proof of Authority, PoA）机制。它通过签名验证和投票机制管理区块的生成和验证，并支持节点动态加入或移除验证者。
+* `clique/snapshot.go` 实现了Clique共识机制中的快照管理，包括快照的创建、加载、存储、复制、投票处理和签名者管理。
+
+## 5. `core`
+功能：实现以太坊区块链核心功能，包括区块链管理、区块生成、区块同步、交易管理等功能。
+* `blockchain.go` 实现了以太坊区块链的核心逻辑，包括区块的插入、验证、链重组、状态管理以及区块头的处理等功能。它还支持事件订阅机制，用于监听区块链的变更事件。
+* `evm.go` 定义了以太坊虚拟机（EVM）的上下文环境，用于在执行交易时提供必要的区块链状态信息和共识参数。
+* `events.go` 定义了以太坊核心模块中使用的事件类型，用于在不同组件之间传递信息，例如交易池更新、区块生成、日志移除和链头变化等。
+* `block_validator.go` 实现了以太坊区块链的**区块验证**逻辑，包括区块体验证（交易和叔块根哈希校验）和状态验证（状态根、收据根、Gas 使用量校验），并提供了计算新区块 Gas 限制的函数。
+* `block_insert.go` 实现了以太坊区块链的核心逻辑，包括区块的插入、验证、链重组、状态管理以及区块头的处理等功能。它还支持事件订阅机制，用于监听区块链的变更事件。
+* `block.go` 定义了一个全局变量 BadHashes，用于存储已知的“坏哈希”（通常是硬分叉相关的哈希值），以便在区块链处理过程中识别和处理这些特定的区块哈希。
+* `chain_indexer.go` 用于以太坊区块链的链索引器（ChainIndexer），它负责在后台对区块链的等长分段进行后处理（如生成过滤器布隆过滤器或CHT结构）。链索引器通过事件系统与区块链连接，并支持级联子索引器，以便在父索引器完成分段处理后通知子索引器。
+* `chain_makers.go` 实现了一个用于生成测试区块链的工具类 BlockGen，支持添加交易、设置区块头信息、生成区块等功能，常用于测试以太坊区块链的共识机制和区块处理逻辑。
+* `genesis.go` 定义了以太坊区块链的创世区块（Genesis Block）结构及其相关功能，包括创世区块的配置、初始状态分配、区块生成和提交到数据库的逻辑。它支持创建默认的主网、测试网和开发网的创世区块，并提供了自定义创世区块的功能。
+* `gen_gensis.go` 从json文件中读取创世区块数据，将创世区块导出为json文件
+* `headerchain.go` 这段代码定义了一个 HeaderChain 结构，用于管理以太坊区块链的区块头信息，包括区块头的存储、验证、检索以及链的重组逻辑。
+* `tx_pool.go` 实现了一个以太坊交易池（TxPool），用于管理、验证和排序交易，支持本地和远程交易的添加、优先级调整以及状态更新
+  * `func validateTx` **验证交易**
+* `types/block.go` 定义了以太坊区块链中区块头（Header）和区块（Block）的数据结构，并实现了与之相关的功能，包括区块头的哈希计算、区块的编码与解码、以及区块的创建和操作方法。
+  * `func NewBlock` 创建一个新的以太坊区块，根据给定的区块头、交易列表、叔块列表和收据列表，自动计算并设置区块头中的交易哈希、收据哈希、叔块哈希以及布隆过滤器，并复制输入数据以确保原始数据不会被修改。
+  * `func Hash()` 计算区块的哈希值，用于唯一标识区块的身份和内容。
+* `types/proposalTx.go` 定义了一个用于交易修改的结构体 ProposalTx，以及相关的消息结构体 ModifyMsg，用于表示交易的修改操作及其相关信息
+* `types/transaction.go` 定义了以太坊交易（Transaction）及其相关结构和方法，用于处理以太坊区块链中的交易数据，包括交易的编码、解码、哈希计算、签名验证以及交易的排序和管理。
+* `state/database.go` 定义了以太坊状态数据库（state.Database）的接口和实现，用于管理以太坊区块链中的账户状态和存储数据。
+* `state/dump.go` 实现了以太坊状态数据库的导出功能，允许将整个状态以 JSON 格式导出为一个单一的对象或逐行输出。
+* `state/statedb.go` 以太坊状态数据库（StateDB），用于管理以太坊区块链中的账户状态、存储数据以及日志记录。它支持状态的修改、快照、回滚以及最终提交到底层的 Merkle Patricia Trie 数据库。
+* `state/journal.go` 跟踪和管理以太坊状态数据库修改的日志系统，支持状态回滚和快照功能。
+* `vm/contract.go` 定义了以太坊虚拟机（EVM）中合约的表示和操作逻辑，用于在执行智能合约时管理合约的状态、代码、调用者信息以及跳转目标分析。
+* `vm/contracts.go` 定义了以太坊虚拟机（EVM）中预编译合约（Precompiled Contracts）的实现，这些合约是直接用 Go 语言编写的，用于执行特定的加密和和数学操作，从而提高效率。
+* `vm/evm.go` 实现了以太坊虚拟机（EVM）的核心逻辑，包括合约的创建、调用、委托调用、静态调用以及预编译合约的运行。
+* `vm/memory.go` 实现了一个简单的内存模型，用于以太坊虚拟机（EVM）的内存管理。
+* `vm/intpool.go` 实现了一个用于管理 big.Int 对象的内存池（intPool），以减少重复分配和释放 big.Int 对象的开销，从而提高性能。
+* `vm/interpreter.go` 实现了一个以太坊虚拟机（EVM）的解释器（EVMInterpreter），用于执行智能合约的字节码。
+* `rawdb/accessors_chain.go` 提供对区块链数据的读写操作，包括区块头（Header）、区块体（Body）、交易收据（Receipts）和总难度（Total Difficulty）等数据的存储和检索。
+  * 读取所有哈希
+  * 里面有`deleteBlock`函数
+
+## 6. `miner`
+功能：
+* `miner.go` 实现了一个以太坊挖矿模块（Miner），用于管理挖矿操作，包括创建区块、搜索工作量证明（Proof of Work, PoW）值，并处理与挖矿相关的事件和状态。
+* `worker.go` 实现了一个以太坊矿工的工作流程，包括生成新区块、处理交易、提交区块到区块链，并通过多个goroutine协同工作来管理区块生成、交易处理和结果提交。
+
+## 7. `eth`
+功能：实现以太坊网络协议，包括节点发现、节点通信、区块同步、交易广播等功能。
+* `backend.go` 定义了一个以太坊全节点服务，包括区块链管理、交易池、挖矿、网络协议、RPC 接口等功能，并通过网络协议**广播**新的区块和交易到其他节点。
+* `handler.go` 用于管理节点间的通信、区块同步、交易传播和处理，同时支持公私钥管理与广播功能。
+* `peer.go` 实现了一个以太坊协议中的对等节点管理器，用于处理节点间的通信、区块和交易的广播与同步。
+* `protocol.go` 定义了以太坊协议中用于节点间通信的各种消息类型、协议版本、数据结构以及错误处理机制，以支持区块传播、交易处理和网络状态同步等功能。
+
+## 8. `super`
+* `super.go` 封装了以太坊实例，提供了与以太坊交互的方法，包括设置和获取总和、广播信息以及处理交易哈希的功能。
+
+## 9. `publickey`
+* `publickey.go` 计算系统公钥
+
+## 10. `internal` 
+* `ethapi/api.go` 里定义eth控制台的api接口，可以在这里定义一个控制台命令
+
+
+# 以太坊里的一些概念
+## 1. 古老区块、活跃区块
+**启发：** 将古老区块裁剪掉
+### 古老区块
+**定义：**
+古老区块是指那些已经被完全确认且不再参与当前活跃链的区块。这些区块通常位于区块链的较早部分，其数据已经稳定且不会再被频繁访问。
+**特点**：
+* 存储方式：古老区块的数据被存储在**“ancient store”**中，这是一种专门的存储区域，用于存放已经稳定且不再需要频繁更新的数据。
+* 数据迁移：当区块的编号小于或等于ancientLimit时，这些区块会被视为古老区块，并从活跃存储中迁移到古老存储中。
+* 删除操作：在迁移过程中，会删除活动数据库中的古老区块数据，以节省空间并优化性能。 
+### 活跃区块 
+**定义：**
+活跃区块是指那些正在参与当前区块链活动的区块，这些区块可能还在被频繁访问和更新，例如最近生成的区块。
+**特点：**
+* 存储方式：活跃区块的数据存储在**“active store”**中，这是一个用于存放当前活跃数据的存储区域，便于快速访问和更新。
+* 数据更新：活跃区块的数据可能会因为新的区块生成或链的重组而频繁更新。
+* 忽略操作：如果某个活跃区块已经存在于数据库中，则会忽略重复插入的操作。
+## 2. 叔块
+**定义：**
+区块链最终只会选择其中一个区块作为主链上的正式区块，而其他同时产生但未被纳入主链的有效区块就被称为叔块。
+# 1.0修改过程
+## 一、联盟链初始化
+- [x] 生成pqg <br>
+
+- [x] 公共参数存储在创世区块中
+
+- [x] 区块哈替换为变色龙哈希
+- [x] 子公钥广播
+``` 
+eth/handler.go
+```
+- [x] 子私钥广播
+``` 
+eth/handler.go
+```
+- [ ] 系统公钥计算
+``` 
+eth/handler.go
+publickey/publickey.go
+```
+- [x] 系统私钥计算
+``` 
+eth/handler.go
+```
+## 二、交易打包
+- [x] 挑选记账者
+- [x] 生成区块
+```
+计算区块哈希core/types/block.go
+```
+## 三、交易修改
+- [x] 本地交易修改
+- [x] 发起交易提案，广播给其他参与区块生成的权限节点进行验证。
+- [x] 其他权限节点验证交易提案，如果验证通过，广播同意该提案的回复并将子私钥回复给提案节点。
+- [ ] 提案节点获得全部子私钥后，执行可变参数锻造函数，得到新可变参数，最后广播交易修改消息，即被接受的修改提案和新可变参数。
+- [ ] 普通节点收到交易修改消息后，通过执行哈希验证函数验证是否匹配，如果通过就更新本地区块信息；权限节点收到交易修改消息后，先查询本地数据库中是否有该交易被修改的合法记录，再进行交易的完整性验证，
+- [ ] 若验证成功，则更新本地区块信息
+
+# 系统功能实现
+
+## 数据修改
+``` 
+系统实现了完整的交易修改功能，主要包括以下几个方面：
+
+1. 交易修改基础结构
+   - 在core/types/ProposalTx.go 中定义 ProposalTx：
+     * 包含修改前后的交易内容(tBefore, tAfter)
+     * 记录修改原因和提议者签名
+     * 定义交易状态(活跃、接受、拒绝)
+   - core/types/transaction.go实现基础交易结构和处理：
+     * 定义交易的基本属性和签名验证
+     * 提供创建和处理交易的核心方法
+
+2. 区块链核心功能
+   - core/block_validator.go负责区块验证：
+     * 验证区块体和交易根哈希
+     * 确保状态转换的正确性
+   - core/blockchain.go管理区块链核心逻辑：
+     * 处理区块的插入和验证
+     * 维护区块链状态
+   - core/state/statedb.go管理状态数据：
+     * 处理账户状态和合约状态
+     * 支持状态回滚和快照功能
+
+3. 网络通信协议
+   - eth/protocol.go定义了所有必要的消息类型：
+     * PublicKeyMsg (0x11): 用于广播子公钥
+     * PrivateKeyMsg (0x12): 用于广播子私钥
+     * ModifyVerifyMsg (0x13): 用于广播修改提案验证
+     * TxModifyMsg (0x14): 用于广播最终的交易修改消息
+   - eth/handler.go实现了完整的消息处理逻辑：
+     * 处理子公钥广播并更新系统公钥
+     * 处理子私钥响应，执行可变参数锻造
+     * 处理修改提案验证，验证提案者身份和签名
+     * 处理最终交易修改消息，进行哈希验证和区块信息更新
+```
+### 变色龙哈希替换（区块哈希）
+```
+1. 区块哈希生成
+- 在core/types/block.go中的Header.Hash()方法已经实现了变色龙哈希替换
+- 使用区块头的Extra字段存储系统公钥(spk)和可变参数(r)
+- 从区块头数据生成消息m，并使用变色龙哈希计算最终哈希值
+2. 区块哈希验证
+- 在consensus/ethash/consensus.go中的verifyHeader方法中，由于变色龙哈希的验证是通过哈希函数本身完成的，不需要额外的验证逻辑
+- 当验证区块时，会自动调用Header.Hash()方法，该方法会使用相同的变色龙哈希参数进行计算和验证
+```
+### 交易修改提案功能
+```
+1. eth/handler.go：
+- 实现了交易修改提案的广播和验证
+- 处理子公钥和子私钥的广播
+- 处理修改提案验证消息(ModifyVerifyMsg)
+- 处理交易修改消息(TxModifyMsg)
+- 执行可变参数锻造功能
+2. core/types/proposalTx.go：
+- 定义了ProposalTx结构体，包含修改前后的交易内容
+- 定义了ModifyMsg结构体，用于广播最终的交易修改消息
+3. core/blockchain.go：
+- 实现了区块信息的更新
+- 管理交易修改记录
+- 验证交易修改的合法性
+4. chameleon/Chameleonhash.go：
+- 实现了变色龙哈希的核心功能
+- 提供了哈希计算、验证和锻造等方法
+```
+### 修改记录管理功能
+```
+1. 扩展了ProposalTx结构体
+- 添加了modifyTime字段用于记录修改时间戳
+- 添加了modifyHistory字段用于存储修改历史记录
+- 新增了proposalLog结构体用于记录每次修改的详细信息
+2. 实现了修改记录的存储和查询功能
+- 创建了proposalDB结构体管理修改记录的数据库操作
+- 实现了StoreModification方法存储修改记录
+- 实现了GetModificationsByBlock方法按区块号查询修改记录
+- 实现了GetModificationsByTimeRange方法按时间范围查询修改记录
+3. 添加了相关辅助方法
+- GetModifyTime/SetModifyTime用于获取和设置修改时间
+- AddModifyHistory用于添加修改历史记录
+- GetModifyHistory用于获取修改历史记录
+```
+## 数据压缩
+``` 
+系统实现了高效的区块数据压缩功能，主要包括以下几个方面：
+
+1. 压缩工具包实现
+   - 在core/compression/compression.go中实现了核心压缩功能：
+     * CompressBlock：使用gzip算法对区块数据进行压缩
+     * DecompressBlock：对压缩的区块数据进行解压缩
+     * 支持可配置的压缩级别
+
+2. 数据库层集成
+   - 在core/rawdb/accessors_chain.go中集成压缩功能：
+     * WriteBody函数：写入区块数据前进行压缩
+     * ReadBody函数：读取区块数据后进行解压缩
+     * 无缝集成到现有存储流程中
+
+3. 性能优化
+   - 在保证数据完整性的同时实现存储空间的优化
+   - 压缩和解压缩过程对上层应用透明
+```
+## 权限节点管理
+
+系统采用基于智能合约的权限节点管理机制，实现了完整的权限节点生命周期管理。在准入管理方面，系统通过智能合约实现节点的动态准入控制，设置了严格的准入标准，包括节点计算能力、存储容量等硬件指标评估，以及节点信用评分、质押要求等软实力指标考核，确保只有高质量的节点才能获得权限。系统基于PoA(Proof of Authority)共识机制进行权限分配，采用分层和细粒度的设计，不同级别的权限节点具有不同的操作权限和职责范围。通过智能合约管理节点的权限级别，支持权限的动态调整和撤销，同时实现了权限委托机制，允许权限节点在特定条件下临时转移部分权限，提高系统的灵活性。为确保系统的安全性和去中心化特性，系统采用多重签名机制，重要操作需要多个权限节点共同签名才能生效，并通过投票机制进行决策。在运行监管方面，系统建立了完善的信用评估体系，持续监控和记录权限节点的行为表现，包括在线时长、响应速度、共识参与度、数据同步质量等多个维度，基于信用评分动态调整节点的权重和权限级别。对于表现优异的节点给予更多权限和奖励，而对违规节点则采取降低权限、启动退出机制等惩罚措施，确保整个系统的稳定运行和安全可靠。
+
+## 密钥管理
+```
+系统实现了完整的密钥管理机制，主要包括：
+
+1. 密钥生成
+   - 在accounts模块中实现账户和密钥对的生成
+   - 支持多种密钥生成算法
+   - 提供安全的随机数生成机制
+
+2. 密钥存储
+   - 在keyStore模块中实现密钥的安全存储
+   - 使用加密算法保护私钥
+   - 支持密钥的备份和恢复
+
+3. 密钥分发
+   - 实现安全的密钥分发机制
+   - 支持子密钥的生成和分发
+   - 提供密钥更新和撤销功能
+
+4. 访问控制
+   - 基于角色的访问控制
+   - 支持多重签名机制
+   - 提供审计日志功能
+```
+
+
+# 临时
+1. 在联盟链初始化阶段,除了进行区块链初始化的 原有操作外,还需要执行变色龙哈希算法的初始化函 数,得到公共参数,并将公共参数存储在创世块中
+```
+已完成联盟链初始化阶段的变色龙哈希初始化功能。具体实现包括：
+
+1. 在core/genesis.go的ToBlock方法中：
+- 调用变色龙哈希算法的SetUp函数生成p、q、g参数
+- 生成随机参数r
+- 将这些参数序列化为JSON格式
+- 存储在创世区块的extraData字段中
+2. 在genesisdata包中：
+- 定义了GenesisData结构体管理创世区块数据
+- 实现了InitGenesisExtraData方法用于存储公共参数
+- 实现了GetGenesisExtraData方法用于读取公共参数
+```
+2. 在交易打包之前,所有权限节点需要完成变色 龙哈希密钥生成与子公钥的广播操作,每个权限节 点需要根据其他权限节点的子公钥计算出系统公钥
+```
+已完成变色龙哈希密钥生成与子公钥广播的功能实现：
+
+1. 在 publickey/publickey.go 中完善了系统公钥计算功能：
+- 添加了 sonPublicKeys 映射来存储所有节点的子公钥
+- 实现了 AddSonPublicKey 方法用于添加子公钥
+- 实现了 updateSystemPublicKey 方法用于计算系统公钥
+- 实现了 GetSystemPublicKey 方法用于获取系统公钥
+2. 系统已具备以下功能：
+- 权限节点可以生成和广播子公钥
+- 节点可以收集其他节点的子公钥
+- 节点可以根据收集到的子公钥计算系统公钥
+- 使用同步机制确保在交易打包前完成所有密钥操作

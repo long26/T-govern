@@ -1,0 +1,12 @@
+{
+  "nodes": {
+    "node1": {
+      "address": "0x44e2A9438a97b1aC0c8209577EE60e96966030C9",
+      "privateKey": "239faa76af10e9f412bdae2bec367afc2d9b35a630aa099e02f7a0bd21650961"
+    },
+    "node2": {
+      "address": "0x5D275b2EF962ab6fF30Fe97BD061d7Fc1Baf592b",
+      "privateKey": "db7692b61b058ea7c534275be5c5d1ba6b6d5f215b98b44d426a6d91cfc3fce0"
+    }
+  }
+}

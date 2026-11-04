@@ -1,0 +1,344 @@
+enclave {
+    include "sgx_report.h"
+    include "stdbool.h"
+    include "stdint.h"
+    from "sgx_tstdc.edl" import *;
+    from "sgx_dcap_tvl.edl" import *;
+
+    trusted {
+        public sgx_status_t ecall_get_enclave_pk(
+            [out, size=pk_buf_size] uint8_t* pk,
+            uint32_t pk_buf_size,
+            [out] uint32_t* pk_out_size
+        );
+
+        public sgx_status_t ecall_register_peer_epk(
+            int peer_index,
+            [in, size=peer_pk_size] const uint8_t* peer_pk,
+            uint32_t peer_pk_size
+        );
+        
+        public uint32_t ecall_create_report([in]const sgx_target_info_t* p_qe3_target,
+                                                [out]sgx_report_t* p_report,
+                                                [out, size=32] uint8_t* e_hardware_id,
+                                                uint32_t e_hardware_id_len,
+                                                [out, size=e_committee_pubkey_len] uint8_t* e_committee_pubkey,
+                                                uint32_t e_committee_pubkey_len,
+                                                [out, size=e_sig_pubkey_len] uint8_t* e_sig_pubkey,
+                                                uint32_t e_sig_pubkey_len,
+                                                [out, size=e_vrf_pubkey_len] uint8_t* e_vrf_pubkey,
+                                                uint32_t e_vrf_pubkey_len
+                                              );
+
+        public sgx_status_t ecall_get_identity(
+            [out, size=e_hardware_id_len] uint8_t* e_hardware_id,
+            uint32_t e_hardware_id_len,
+            [out, size=e_committee_pubkey_len] uint8_t* e_committee_pubkey,
+            uint32_t e_committee_pubkey_len,
+            [out, size=e_sig_pubkey_len] uint8_t* e_sig_pubkey,
+            uint32_t e_sig_pubkey_len,
+            [out, size=e_vrf_pubkey_len] uint8_t* e_vrf_pubkey,
+            uint32_t e_vrf_pubkey_len
+        );
+
+        public sgx_status_t ecall_set_identity_seed(
+            [in, size=seed_len] const uint8_t* seed,
+            uint32_t seed_len
+        );
+                                              
+        public sgx_status_t ecall_get_target_info([out] sgx_target_info_t* target_info);
+
+        public sgx_status_t ecall_set_committee_pubkey(
+            [in, size=pubkey_len] const uint8_t* pubkey,
+            uint32_t pubkey_len
+        );
+
+        public sgx_status_t ecall_distkg_create_deal(
+            int dealer_index,
+            int threshold,
+            int num_parties,
+            [user_check] uint8_t* commitments_a,
+            uint32_t commitments_a_buf_size,
+            [user_check] uint32_t* commitments_a_out_size,
+            [user_check] uint8_t* commitment_b0,
+            uint32_t commitment_b0_buf_size,
+            [user_check] uint32_t* commitment_b0_out_size,
+            [user_check] uint8_t* shares_out,
+            uint32_t shares_buf_size,
+            [user_check] uint32_t* shares_out_size,
+            [user_check] uint8_t* g1_bytes,
+            uint32_t g1_buf_size,
+            [user_check] uint8_t* g2_bytes,
+            uint32_t g2_buf_size,
+            [user_check] char* p_hex,
+            uint32_t p_hex_buf_size,
+            [user_check] const uint8_t* cert_eA_msg,
+            uint32_t cert_eA_msg_len,
+            [user_check] const uint8_t* cert_eA_sig,
+            uint32_t cert_eA_sig_len,
+            [user_check] const uint8_t* active_tee_list,
+            uint32_t active_tee_count,
+            [user_check] const uint8_t* active_set_cert_input,
+            uint32_t active_set_cert_input_len
+        );
+
+        public sgx_status_t ecall_distkg_verify_share(
+            int receiver_index,
+            int dealer_index,
+            int threshold,
+            int num_parties,
+            [user_check] const uint8_t* commitments_a,
+            uint32_t commitments_a_size,
+            [user_check] const uint8_t* commitment_b0,
+            uint32_t commitment_b0_size,
+            [user_check] const uint8_t* encrypted_share_bytes,
+            uint32_t encrypted_share_bytes_size,
+            [user_check] int* valid,
+            [user_check] const uint8_t* cert_eA_msg,
+            uint32_t cert_eA_msg_len,
+            [user_check] const uint8_t* cert_eA_sig,
+            uint32_t cert_eA_sig_len,
+            [user_check] const uint8_t* active_tee_list,
+            uint32_t active_tee_count,
+            [user_check] const uint8_t* active_set_cert_input,
+            uint32_t active_set_cert_input_len
+        );
+
+        public sgx_status_t ecall_distkg_extract(
+            int my_index,
+            int threshold,
+            int num_parties,
+            [user_check] const int32_t* qual_indices,
+            uint32_t qual_count,
+            [user_check] const uint8_t* all_b0_data,
+            uint32_t all_b0_data_size,
+            [user_check] const int32_t* b0_dealer_map,
+            uint32_t b0_dealer_map_count,
+            [user_check] const uint8_t* all_a0_data,
+            uint32_t all_a0_data_size,
+            [user_check] const int32_t* a0_dealer_map,
+            uint32_t a0_dealer_map_count,
+            [user_check] const uint8_t* encrypted_shares_data,
+            uint32_t encrypted_shares_data_size,
+            [user_check] const int32_t* shares_from_map,
+            uint32_t shares_from_map_count,
+            [user_check] uint8_t* global_pk,
+            uint32_t global_pk_buf_size,
+            [user_check] uint32_t* global_pk_out_size,
+            [user_check] uint8_t* global_pk_g1,
+            uint32_t global_pk_g1_buf_size,
+            [user_check] uint32_t* global_pk_g1_out_size,
+            [user_check] uint8_t* verification_key,
+            uint32_t vk_buf_size,
+            [user_check] uint32_t* vk_out_size,
+            [user_check] const uint8_t* pkch_chain_id,
+            uint32_t pkch_chain_id_len,
+            [user_check] const uint8_t* pkch_contract_address,
+            uint32_t pkch_contract_address_len,
+            [user_check] const uint8_t* pkch_tee_owner,
+            uint32_t pkch_tee_owner_len,
+            [user_check] uint8_t* pkch_signature,
+            uint32_t pkch_signature_buf_size,
+            [user_check] uint32_t* pkch_signature_out_size,
+            [user_check] const uint8_t* cert_eA_msg,
+            uint32_t cert_eA_msg_len,
+            [user_check] const uint8_t* cert_eA_sig,
+            uint32_t cert_eA_sig_len,
+            [user_check] const uint8_t* active_tee_list,
+            uint32_t active_tee_count,
+            [user_check] const uint8_t* active_set_cert_input,
+            uint32_t active_set_cert_input_len
+        );
+
+        public sgx_status_t ecall_erase_share(
+            uint64_t epoch,
+            int node_index,
+            [user_check] const uint8_t* chain_id,
+            uint32_t chain_id_len,
+            [user_check] const uint8_t* contract_address,
+            uint32_t contract_address_len,
+            [user_check] const uint8_t* tee_owner,
+            uint32_t tee_owner_len,
+            [user_check] uint8_t* erase_proof_hash_out,
+            uint32_t erase_proof_hash_buf_size,
+            [user_check] uint8_t* proof_out,
+            uint32_t proof_buf_size,
+            [user_check] uint32_t* proof_out_size
+        );
+
+        public sgx_status_t ecall_partial_adapt(
+            [user_check] const uint8_t* source_msg,
+            uint32_t source_msg_len,
+            [user_check] const uint8_t* target_msg,
+            uint32_t target_msg_len,
+            [user_check] const uint8_t* cert_req_auth_msg,
+            uint32_t cert_req_auth_msg_len,
+            [user_check] const uint8_t* cert_req_auth_sig,
+            uint32_t cert_req_auth_sig_len,
+            [user_check] const uint8_t* cert_eA_msg,
+            uint32_t cert_eA_msg_len,
+            [user_check] const uint8_t* cert_eA_sig,
+            uint32_t cert_eA_sig_len,
+            [user_check] const uint8_t* d_req,
+            uint32_t d_req_len,
+            [user_check] const uint8_t* d_policy,
+            uint32_t d_policy_len,
+            [user_check] const uint8_t* committee_pub_key_version,
+            uint32_t cpkv_len,
+            [user_check] const uint8_t* expires_at,
+            uint32_t expires_at_len,
+            [user_check] const uint8_t* active_tee_list,
+            uint32_t active_tee_count,
+            [user_check] const uint8_t* active_set_cert_input,
+            uint32_t active_set_cert_input_len,
+            [user_check] const uint8_t* d_req_input,
+            uint32_t d_req_input_len,
+            [user_check] uint8_t* contribution_out,
+            uint32_t contribution_buf_size,
+            [user_check] uint32_t* contribution_out_size,
+            [user_check] uint8_t* proof_challenge_out,
+            uint32_t proof_challenge_buf_size,
+            [user_check] uint8_t* proof_response_out,
+            uint32_t proof_response_buf_size,
+            [user_check] uint8_t* y_out,
+            uint32_t y_buf_size,
+            [user_check] uint32_t* y_out_size,
+            [user_check] uint8_t* sigma_out,
+            uint32_t sigma_buf_size,
+            [user_check] uint32_t* sigma_out_size
+        );
+
+        public sgx_status_t ecall_vrf_eval(
+            [user_check] const uint8_t* chain_id,
+            uint32_t chain_id_len,
+            [user_check] const uint8_t* contract_address,
+            uint32_t contract_address_len,
+            uint64_t epoch,
+            [user_check] const uint8_t* hardware_id,
+            uint32_t hardware_id_len,
+            [user_check] const uint8_t* vrf_pubkey,
+            uint32_t vrf_pubkey_len,
+            [user_check] const uint8_t* seed,
+            uint32_t seed_len,
+            [user_check] uint8_t* vrf_result_out,
+            uint32_t vrf_result_buf_size,
+            [user_check] uint8_t* vrf_proof_out,
+            uint32_t vrf_proof_buf_size,
+            [user_check] uint32_t* vrf_proof_out_size
+        );
+
+        public sgx_status_t ecall_get_enclave_state(
+            [user_check] int* has_secret_key,
+            [user_check] int* stored_index
+        );
+
+        // Table 6.2 benchmark support. The returned values are aggregate
+        // cycle counters for fixed algorithm regions, never key material.
+        public sgx_status_t ecall_benchmark_noop();
+
+        public sgx_status_t ecall_benchmark_reset_stats();
+
+        public sgx_status_t ecall_benchmark_get_stats(
+            uint32_t operation,
+            [user_check] uint64_t* calls,
+            [user_check] uint64_t* total_cycles,
+            [user_check] uint64_t* min_cycles,
+            [user_check] uint64_t* max_cycles
+        );
+
+        public sgx_status_t ecall_dkrs_create_deal(
+            int dealer_index,
+            int new_threshold,
+            int new_num_parties,
+            [user_check] uint8_t* commitments_a,
+            uint32_t commitments_a_buf_size,
+            [user_check] uint32_t* commitments_a_out_size,
+            [user_check] uint8_t* commitment_b0,
+            uint32_t commitment_b0_buf_size,
+            [user_check] uint32_t* commitment_b0_out_size,
+            [user_check] uint8_t* shares_out,
+            uint32_t shares_buf_size,
+            [user_check] uint32_t* shares_out_size,
+            [user_check] uint8_t* g1_bytes,
+            uint32_t g1_buf_size,
+            [user_check] uint8_t* g2_bytes,
+            uint32_t g2_buf_size,
+            [user_check] char* p_hex,
+            uint32_t p_hex_buf_size,
+            [user_check] const uint8_t* cert_eA_msg,
+            uint32_t cert_eA_msg_len,
+            [user_check] const uint8_t* cert_eA_sig,
+            uint32_t cert_eA_sig_len,
+            [user_check] const uint8_t* active_tee_list,
+            uint32_t active_tee_count,
+            [user_check] const uint8_t* active_set_cert_input,
+            uint32_t active_set_cert_input_len
+        );
+
+        public sgx_status_t ecall_dkrs_verify_share(
+            int receiver_index,
+            int dealer_index,
+            int new_threshold,
+            int new_num_parties,
+            [user_check] const uint8_t* commitments_a,
+            uint32_t commitments_a_size,
+            [user_check] const uint8_t* commitment_b0,
+            uint32_t commitment_b0_size,
+            [user_check] const uint8_t* encrypted_share_bytes,
+            uint32_t encrypted_share_bytes_size,
+            [user_check] int* valid,
+            [user_check] const uint8_t* cert_eA_msg,
+            uint32_t cert_eA_msg_len,
+            [user_check] const uint8_t* cert_eA_sig,
+            uint32_t cert_eA_sig_len,
+            [user_check] const uint8_t* active_tee_list,
+            uint32_t active_tee_count,
+            [user_check] const uint8_t* active_set_cert_input,
+            uint32_t active_set_cert_input_len
+        );
+
+        public sgx_status_t ecall_dkrs_extract(
+            int my_index,
+            int new_threshold,
+            int new_num_parties,
+            int old_num_parties,
+            [user_check] const int32_t* qual_old_indices,
+            uint32_t qual_old_count,
+            [user_check] const uint8_t* all_b0_data,
+            uint32_t all_b0_data_size,
+            [user_check] const int32_t* b0_dealer_map,
+            uint32_t b0_dealer_map_count,
+            [user_check] const uint8_t* all_a0_data,
+            uint32_t all_a0_data_size,
+            [user_check] const int32_t* a0_dealer_map,
+            uint32_t a0_dealer_map_count,
+            [user_check] const uint8_t* encrypted_shares_data,
+            uint32_t encrypted_shares_data_size,
+            [user_check] const int32_t* shares_from_map,
+            uint32_t shares_from_map_count,
+            [user_check] uint8_t* global_pk,
+            uint32_t global_pk_buf_size,
+            [user_check] uint32_t* global_pk_out_size,
+            [user_check] uint8_t* global_pk_g1,
+            uint32_t global_pk_g1_buf_size,
+            [user_check] uint32_t* global_pk_g1_out_size,
+            [user_check] uint8_t* verification_key,
+            uint32_t vk_buf_size,
+            [user_check] uint32_t* vk_out_size,
+            [user_check] const uint8_t* cert_eA_msg,
+            uint32_t cert_eA_msg_len,
+            [user_check] const uint8_t* cert_eA_sig,
+            uint32_t cert_eA_sig_len,
+            [user_check] const uint8_t* active_tee_list,
+            uint32_t active_tee_count,
+            [user_check] const uint8_t* active_set_cert_input,
+            uint32_t active_set_cert_input_len
+        );
+    };
+
+    untrusted {
+        /* define OCALLs here. */
+        void ocall_print_string([in, string] const char* str);
+        void ocall_print_num([in] uint32_t* num);
+    };
+};

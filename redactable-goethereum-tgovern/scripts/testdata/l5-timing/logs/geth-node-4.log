@@ -1,0 +1,4 @@
+INFO [07-15|10:00:28.000] E2E_TIMING stage=ledger_update event=tx_modify_received join_key=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa node_id=18554 node_role=light block_number=9 tx_index=1
+INFO [07-15|10:00:40.000] E2E_TIMING stage=ledger_update event=local_block_updated join_key=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa node_id=18554 node_role=light block_number=9 tx_index=1
+INFO [07-15|10:00:40.200] TEE host starting DKRS oldEpoch=1 newEpoch=2 receiverIndex=3
+INFO [07-15|10:00:41.000] TEE host extracted DKRS receiverIndex=3

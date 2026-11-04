@@ -1,0 +1,5 @@
+*.o
+tools/h1_oracle
+tools/c_api_selftest
+__pycache__/
+*.pyc
