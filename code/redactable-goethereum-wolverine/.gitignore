@@ -48,6 +48,8 @@ profile.cov
 
 
 /node*/*
+!/node/
+!/node/**
 /myenv/
 
 # 日志和PID文件

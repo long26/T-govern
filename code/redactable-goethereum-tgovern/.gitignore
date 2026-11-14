@@ -48,6 +48,8 @@ profile.cov
 
 
 /node*/*
+!/node/
+!/node/**
 /myenv
 
 # SGX SIM build outputs
