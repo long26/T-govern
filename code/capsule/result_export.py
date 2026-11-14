@@ -17,7 +17,33 @@ METRIC_FIELDS = ('system', 'run_id', 'sample_run', 'stage', 'metric_definition',
                  'raw_mean_ms', 'filtered_mean_ms', 'p50_ms', 'p95_ms', 'p99_ms', 'max_ms', 'basis', 'source')
 SAMPLE_FIELDS = ('system', 'run_id', 'sample_run', 'stage', 'metric_definition', 'stratum',
                  'sample_id', 'duration_ms', 'epoch', 'request_id', 'node_id', 'status', 'source')
+HIDDEN_STAGES = {'transaction_generation', 'transaction_validation', 'execute_redaction_confirmation',
+                 'ledger_update_e2e', 'ledger_update_total', 'rotation_bootstrap'}
+CSV_METRIC_FIELDS = tuple(field for field in METRIC_FIELDS
+                          if field not in {'metric_definition', 'stratum', 'basis', 'source', 'availability'})
+CSV_SAMPLE_FIELDS = tuple(field for field in SAMPLE_FIELDS
+                          if field not in {'metric_definition', 'stratum', 'source', 'sample_id'}) + ('sample_index',)
 FILES = ('summary.json', 'summary.csv', 'samples.csv', 'report.md')
+
+
+def clean_detail_csvs(root: Path):
+    removed_fields = {'metric_definition', 'stratum', 'basis', 'source', 'note', 'definition',
+                      'headline', 'aggregation', 'aggregation_mode', 'event', 'sample_id'}
+    for project in ('nitch', 'sgx-sim', 'sgx-last-run'):
+        for path in (root / project).rglob('*.csv'):
+            with path.open(encoding='utf-8', newline='') as stream:
+                reader = csv.DictReader(stream)
+                original = reader.fieldnames or []
+                rows = list(reader)
+            if 'stage' not in original:
+                continue
+            fields = [field for field in original if field not in removed_fields]
+            selected = [row for row in rows if row.get('stage') not in HIDDEN_STAGES
+                        and not (row.get('stage') == 'rotation_flow' and str(row.get('epoch')) == '0')]
+            with path.open('w', encoding='utf-8', newline='') as stream:
+                writer = csv.DictWriter(stream, fieldnames=fields, extrasaction='ignore')
+                writer.writeheader()
+                writer.writerows(selected)
 
 
 def load(path):
@@ -210,17 +236,23 @@ def export_results(result_dir: Path, output_dir: Path, status=None, in_place=Fal
     if not in_place:
         output_dir.mkdir(parents=True, exist_ok=False)
     (output_dir / 'summary.json').write_text(json.dumps(summary, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
-    for name, fields, rows in (('summary.csv', METRIC_FIELDS, metrics), ('samples.csv', SAMPLE_FIELDS, samples)):
+    visible_metrics = [row for row in metrics if row['stage'] not in HIDDEN_STAGES]
+    visible_samples = [dict(row, sample_index=index) for index, row in enumerate(
+        (row for row in samples if row['stage'] not in HIDDEN_STAGES), 1)]
+    for name, fields, rows in (('summary.csv', CSV_METRIC_FIELDS, visible_metrics),
+                               ('samples.csv', CSV_SAMPLE_FIELDS, visible_samples)):
         with (output_dir / name).open('w', encoding='utf-8', newline='') as stream:
-            writer = csv.DictWriter(stream, fieldnames=fields)
+            writer = csv.DictWriter(stream, fieldnames=fields, extrasaction='ignore')
             writer.writeheader()
             writer.writerows(rows)
+    if in_place:
+        clean_detail_csvs(result_dir)
     lines = [f'# {system} experiment result', '', f'- Run: `{manifest["run_id"]}`',
              f'- State: `{state["state"]}`. Exit code: `{state.get("exit_code")}`.',
              f'- Verified edits: {summary["verification"]["verified_edits"]}. Verified rotations: {summary["verification"]["verified_rotations"]}.',
-             '', '| Stage | Definition | Samples | Raw mean ms | Availability |', '|---|---|---:|---:|---|']
-    lines.extend(f'| {m["stage"]} | {m["metric_definition"]} | {m["raw_count"]} | {m["raw_mean_ms"]} | {m["availability"]} |' for m in metrics)
-    lines += ['', '## Measurement notes', ''] + ['- ' + note for note in warnings]
+             '', '| Stage | Samples | Mean (ms) | P50 (ms) | P95 (ms) |', '|---|---:|---:|---:|---:|']
+    lines.extend(f'| {m["stage"]} | {m["raw_count"]} | {m["raw_mean_ms"]} | {m["p50_ms"]} | {m["p95_ms"]} |'
+                 for m in metrics if m['stage'] not in HIDDEN_STAGES and m['availability'] == 'available')
     (output_dir / 'report.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
     return summary
 

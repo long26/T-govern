@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from result_export import export_results, FILES, METRIC_FIELDS, SAMPLE_FIELDS
+from result_export import export_results, clean_detail_csvs, FILES, CSV_METRIC_FIELDS, CSV_SAMPLE_FIELDS, HIDDEN_STAGES
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -45,6 +45,18 @@ class ResultExportTests(unittest.TestCase):
                 export_results(root / 'input', root / 'output')
             self.assertEqual((root / 'output/sentinel').read_text(), 'keep')
 
+    def test_detail_csvs_remove_excluded_stages_and_descriptions(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / 'nitch/run-001/timing/timing-stages.csv'
+            path.parent.mkdir(parents=True)
+            path.write_text('stage,count,mean_ms,basis,note,event\n'
+                            'edit_execution,5,12,entry -> broadcast,details,anchor\n'
+                            'transaction_generation,5,2,details,details,anchor\n', encoding='utf-8')
+            clean_detail_csvs(root)
+            text = path.read_text(encoding='utf-8')
+            self.assertEqual(text, 'stage,count,mean_ms\nedit_execution,5,12\n')
+
     def test_shamir_does_not_invent_block_metrics(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -78,15 +90,27 @@ class RealResultExportTests(unittest.TestCase):
                 self.assertEqual(summary['verification']['verified_edits'], 5)
                 self.assertEqual(summary['verification']['verified_rotations'], 1)
                 with (output / 'summary.csv').open(encoding='utf-8') as stream:
-                    self.assertEqual(tuple(csv.DictReader(stream).fieldnames), METRIC_FIELDS)
+                    self.assertEqual(tuple(csv.DictReader(stream).fieldnames), CSV_METRIC_FIELDS)
                 with (output / 'samples.csv').open(encoding='utf-8') as stream:
                     reader = csv.DictReader(stream)
-                    self.assertEqual(tuple(reader.fieldnames), SAMPLE_FIELDS)
+                    self.assertEqual(tuple(reader.fieldnames), CSV_SAMPLE_FIELDS)
                     samples = list(reader)
                 for metric in summary['metrics']:
-                    if metric['raw_count'] is not None:
-                        actual = [s for s in samples if s['stage'] == metric['stage'] and s['stratum'] == metric['stratum']]
+                    if metric['raw_count'] is not None and metric['stage'] not in HIDDEN_STAGES:
+                        actual = [s for s in samples if s['stage'] == metric['stage']]
                         self.assertEqual(len(actual), metric['raw_count'])
+                report = (output / 'report.md').read_text(encoding='utf-8')
+                self.assertIn('| Stage | Samples | Mean (ms) | P50 (ms) | P95 (ms) |', report)
+                for excluded in ('Definition', 'Measurement notes', 'metric_definition', 'basis',
+                                 'transaction_generation', 'transaction_validation',
+                                 'execute_redaction_confirmation', 'ledger_update_e2e',
+                                 'ledger_update_total', 'rotation_bootstrap', '->', 'not_collected'):
+                    self.assertNotIn(excluded, report)
+                self.assertTrue(any(m['stage'] == 'transaction_generation' for m in summary['metrics']))
+                for filename in ('summary.csv', 'samples.csv'):
+                    text = (output / filename).read_text(encoding='utf-8')
+                    for token in (*HIDDEN_STAGES, 'metric_definition', 'stratum', 'basis', '->'):
+                        self.assertNotIn(token, text)
                 summaries.append(summary)
             self.assertEqual(set(summaries[0]), set(summaries[1]))
             tgovern = summaries[1]
