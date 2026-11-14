@@ -72,7 +72,7 @@ class Config:
         return cls(experiment, count('CO_RUNS', 1, 1), count('CO_ROTATIONS', 1, 0),
                    count('CO_EDITS', 5, 1), count('CO_TIMEOUT_SECONDS', 3600, 1),
                    str(Path(os.environ.get('CO_RESULTS_DIR', '/results')).resolve()),
-                   str(Path(os.environ.get('CO_GO_CACHE', '/data/' + EXPERIMENTS[experiment].cache_name)).resolve()), run_id,
+                   str(Path(os.environ.get('CO_GO_CACHE', '/opt/tgovern/cache/' + EXPERIMENTS[experiment].cache_name)).resolve()), run_id,
                    steady_epoch_length=steady_epoch_length,
                    **({'sgx_mode': None, 'quote_mode': None, 'attestation_provider': None} if experiment == 'nitch' else {}))
 

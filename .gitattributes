@@ -1,4 +1,8 @@
-/run text eol=lf
+/code/run text eol=lf
+/code/capsule/*.sh text eol=lf
+/code/capsule/*.py text eol=lf
 /environment/*.sh text eol=lf
 /environment/postInstall text eol=lf
 /environment/*.py text eol=lf
+/environment/Dockerfile text eol=lf
+/tools/docker/* text eol=lf

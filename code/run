@@ -2,4 +2,4 @@
 set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 export PATH="/opt/tgovern/venv/bin:/opt/tgovern/go/bin:$PATH"
-exec "${PYTHON_BIN:-python3}" "$ROOT/environment/run_capsule.py" "$@"
+exec "${PYTHON_BIN:-python3}" "$ROOT/capsule/run_capsule.py" "$@"

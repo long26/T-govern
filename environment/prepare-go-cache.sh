@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+ROOT=${CACHE_SOURCE_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}
 export PATH="/opt/tgovern/go/bin:$PATH"
 experiment=sgx
 if [[ "${1:-}" == --experiment ]]; then
@@ -9,9 +10,9 @@ if [[ "${1:-}" == --experiment ]]; then
     shift 2
 fi
 [[ $# -le 1 ]] || { printf 'Usage: prepare-go-cache.sh [--experiment sgx|nitch] [output]\n' >&2; exit 2; }
-configuration=$(python3 - "$ROOT" "$experiment" <<'PY'
+configuration=$(python3 - "$SCRIPT_DIR" "$experiment" <<'PY'
 import sys
-sys.path.insert(0, sys.argv[1] + '/environment')
+sys.path.insert(0, sys.argv[1])
 from experiment_config import EXPERIMENTS
 if sys.argv[2] not in EXPERIMENTS:
     raise SystemExit('unknown experiment')

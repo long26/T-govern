@@ -6,9 +6,13 @@ For the non-interactive Code Ocean entry point and SGX SIM environment setup, se
 
 ```
 Tgovern/
-├── redactable-goethereum-tgovern/     # Tgovern
-├── redactable-goethereum-wolverine/   # Wolverine on Ethereum
-└── committee/                         # Threshold-signature committee process
+├── environment/                      # Code Ocean image and automatic dependency setup
+└── code/
+    ├── run                           # Capsule execution entry
+    ├── capsule/                      # Runtime helpers and unified result export
+    ├── redactable-goethereum-tgovern/ # Tgovern
+    ├── redactable-goethereum-wolverine/ # Native Wolverine
+    └── committee/                    # Threshold-signature committee
 ```
 
 ## Directory layout
@@ -50,7 +54,7 @@ Pure-software Wolverine: Distributed Key Generation, DKRS resharing, PartialAdap
 ## Build
 
 ```bash
-cd redactable-goethereum-tgovern && make geth-sgx SGX_MODE=HW   # SGX_MODE=SIM without hardware
+cd code/redactable-goethereum-tgovern && make geth-sgx SGX_MODE=HW   # SGX_MODE=SIM without hardware
 cd ../committee && go build -o bin/committee-mvp ./cmd/committee-mvp
 
 cd ../redactable-goethereum-wolverine && make geth
@@ -134,13 +138,13 @@ $GETH --datadir chain/node1 --networkid 12345 --port 30301 --maxpeers 128 \
 | Tgovern | `CO_EXPERIMENT=sgx bash run`; enclave-backed `sgx_l5_sim_e2e.py`, sampling and L5 timing collection |
 | NITCH / Wolverine | `CO_EXPERIMENT=nitch bash run`; native `scripts/nitch_e2e.py` and `scripts/collect_perf.py` under `redactable-goethereum-wolverine` |
 
-Run from the repository root in the prepared environment:
+Run from `/code` in the capsule, or from the repository’s `code/` directory in the prepared environment:
 
 ```bash
 # Tgovern, also the default when CO_EXPERIMENT is unset.
 CO_EXPERIMENT=sgx bash run
 
-# Native NITCH/Wolverine, with its separate offline dependency archive.
+# Native NITCH/Wolverine, using its image-installed offline dependencies.
 CO_EXPERIMENT=nitch bash run
 ```
 

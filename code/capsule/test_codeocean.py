@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RUNNER = ROOT / 'environment' / 'run_capsule.py'
+RUNNER = ROOT / 'capsule' / 'run_capsule.py'
 
 
 class CapsuleEntryTests(unittest.TestCase):

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 stage=${1:-all}
-case "$stage" in all|system|python) ;; *) printf 'Usage: postInstall [all|system|python]\n' >&2; exit 2 ;; esac
+case "$stage" in all|system|python|cache) ;; *) printf 'Usage: postInstall [all|system|python|cache]\n' >&2; exit 2 ;; esac
 [[ "$(uname -s)" == Linux && "$(uname -m)" == x86_64 ]] || { printf 'Requires Linux amd64\n' >&2; exit 1; }
 . /etc/os-release
 [[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] || { printf 'Requires Ubuntu 22.04\n' >&2; exit 1; }
@@ -48,5 +48,14 @@ install_python() {
     /opt/tgovern/venv/bin/pip freeze > /opt/tgovern/python-lock.txt
 }
 
-if [[ "$stage" != python ]]; then install_system; fi
-if [[ "$stage" != system ]]; then install_python; fi
+install_cache() {
+    local inputs=${BUILD_INPUTS_DIR:-/tmp/tgovern-build-inputs}
+    export CACHE_SOURCE_ROOT="$inputs/manifests"
+    mkdir -p /opt/tgovern/cache
+    bash "$inputs/prepare-go-cache.sh" --experiment sgx /opt/tgovern/cache/go-mod-cache.tar.gz
+    bash "$inputs/prepare-go-cache.sh" --experiment nitch /opt/tgovern/cache/nitch-go-mod-cache.tar.gz
+}
+
+if [[ "$stage" == all || "$stage" == system ]]; then install_system; fi
+if [[ "$stage" == all || "$stage" == python ]]; then install_python; fi
+if [[ "$stage" == all || "$stage" == cache ]]; then install_cache; fi

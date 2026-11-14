@@ -67,14 +67,14 @@ class ResultExportTests(unittest.TestCase):
 
 
 class RealResultExportTests(unittest.TestCase):
-    @unittest.skipUnless((ROOT / 'capsule-results/tgovern-epoch200-rot1-edit5-r1/status.json').exists(), 'requires retained real results')
+    @unittest.skipUnless((ROOT.parent / 'capsule-results/tgovern-epoch200-rot1-edit5-r1/status.json').exists(), 'requires retained real results')
     def test_real_systems_share_schema_without_merging_epoch_zero(self):
         inputs = ['nitch-4-3-rot1-edit5-r1', 'tgovern-epoch200-rot1-edit5-r1']
         with tempfile.TemporaryDirectory() as directory:
             summaries = []
             for index, name in enumerate(inputs):
                 output = Path(directory) / str(index)
-                summary = export_results(ROOT / 'capsule-results' / name, output)
+                summary = export_results(ROOT.parent / 'capsule-results' / name, output)
                 self.assertEqual(summary['verification']['verified_edits'], 5)
                 self.assertEqual(summary['verification']['verified_rotations'], 1)
                 with (output / 'summary.csv').open(encoding='utf-8') as stream:
