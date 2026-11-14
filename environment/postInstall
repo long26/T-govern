@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+stage=${1:-all}
+case "$stage" in all|system|python) ;; *) printf 'Usage: postInstall [all|system|python]\n' >&2; exit 2 ;; esac
+[[ "$(uname -s)" == Linux && "$(uname -m)" == x86_64 ]] || { printf 'Requires Linux amd64\n' >&2; exit 1; }
+. /etc/os-release
+[[ "$ID" == ubuntu && "$VERSION_ID" == 22.04 ]] || { printf 'Requires Ubuntu 22.04\n' >&2; exit 1; }
+
+install_system() (
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends ca-certificates curl build-essential pkg-config \
+        python3 python3-venv python3-dev libgmp-dev libssl-dev openssl git
+    work=$(mktemp -d)
+    trap 'rm -rf "$work"' EXIT
+    cd "$work"
+    curl -fL --retry 3 -o go.tar.gz https://go.dev/dl/go1.20.14.linux-amd64.tar.gz
+    printf '%s  go.tar.gz\n' ff445e48af27f93f66bd949ae060d97991c83e11289009d311f25426258f9c44 | sha256sum -c -
+    mkdir -p /opt/tgovern
+    [[ ! -e /opt/tgovern/go ]] || { printf 'Toolchain already exists\n' >&2; exit 1; }
+    tar -xzf go.tar.gz -C /opt/tgovern
+    base=https://download.01.org/intel-sgx/sgx-linux/2.25/distro/ubuntu22.04-server
+    curl -fL --retry 3 -o sdk.bin "$base/sgx_linux_x64_sdk_2.25.100.3.bin"
+    printf '%s  sdk.bin\n' 1acf6fa1d3d50d14242737118e39428a2cefb00bfff2795c9a2acc37639ac6e4 | sha256sum -c -
+    mkdir -p /opt/intel
+    bash sdk.bin --prefix=/opt/intel
+    curl -fL --retry 3 -o sgx-repo.tgz "$base/sgx_debian_local_repo.tgz"
+    printf '%s  sgx-repo.tgz\n' 1b3916a77a2867c443940022d2d3cba652fde5972e9742fe8b0abe0bfd332827 | sha256sum -c -
+    mkdir repo
+    tar -xzf sgx-repo.tgz -C repo
+    # Extract development files only; do not start AESM or install hardware drivers.
+    shopt -s globstar nullglob
+    for name in libsgx-dcap-ql-dev libsgx-dcap-quote-verify-dev; do
+        packages=(repo/**/"${name}"_*.deb)
+        [[ ${#packages[@]} == 1 ]] || { printf 'Expected one %s package\n' "$name" >&2; exit 1; }
+        dpkg-deb -x "${packages[0]}" /
+    done
+    test -f /opt/intel/sgxsdk/lib64/libsgx_dcap_tvl.a
+    printf 'Go 1.20.14\nSGX SDK 2.25.100.3\nUbuntu 22.04 amd64\n' > /opt/tgovern/environment.txt
+)
+
+install_python() {
+    /usr/bin/python3 -m venv /opt/tgovern/venv
+    /opt/tgovern/venv/bin/pip install --no-cache-dir --retries 5 --timeout 120 pip==25.3
+    /opt/tgovern/venv/bin/pip install --no-cache-dir --retries 5 --resume-retries 5 --timeout 120 \
+        eth-account==0.13.7 eth-abi==5.2.0 eth-keys==0.7.0 eth-utils==5.3.1 pycryptodome==3.23.0
+    /opt/tgovern/venv/bin/pip freeze > /opt/tgovern/python-lock.txt
+}
+
+if [[ "$stage" != python ]]; then install_system; fi
+if [[ "$stage" != system ]]; then install_python; fi

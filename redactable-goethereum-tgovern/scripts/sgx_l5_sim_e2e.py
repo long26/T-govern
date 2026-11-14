@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """L5 SGX SIM multi-node E2E runner.
 
-This follows committee-mvp's interactive-e2e committee RPC shape, but uses
-geth-sgx TEE hosts and eth_sendTEERedactionMaterial for the final TEE cluster
-path instead of the deprecated local-redaction shortcut.
+Uses committee RPC, geth-sgx TEE hosts, and eth_sendTEERedactionMaterial
+to execute and verify redaction through the enclave-backed TEE cluster.
 """
 
 from __future__ import annotations

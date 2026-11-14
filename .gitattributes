@@ -1,0 +1,4 @@
+/run text eol=lf
+/environment/*.sh text eol=lf
+/environment/postInstall text eol=lf
+/environment/*.py text eol=lf

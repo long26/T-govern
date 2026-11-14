@@ -179,6 +179,12 @@ def cleanup_process_group(pgid: int, grace_seconds: float = 8.0) -> None:
 def run_e2e(command: list[str], env: dict[str, str], output: Any) -> int:
     """Run one E2E in an isolated process group and always reap its children."""
     process: subprocess.Popen[Any] | None = None
+    previous_sigterm = signal.getsignal(signal.SIGTERM)
+
+    def interrupted(signum: int, _frame: Any) -> None:
+        raise InterruptedError(f"E2E interrupted by signal {signum}")
+
+    signal.signal(signal.SIGTERM, interrupted)
     try:
         process = subprocess.Popen(
             command,
@@ -190,8 +196,12 @@ def run_e2e(command: list[str], env: dict[str, str], output: Any) -> int:
         )
         return process.wait()
     finally:
-        if process is not None:
-            cleanup_process_group(process.pid)
+        try:
+            if process is not None:
+                cleanup_process_group(process.pid)
+                process.wait()
+        finally:
+            signal.signal(signal.SIGTERM, previous_sigterm)
 
 
 def merge_run_samples(

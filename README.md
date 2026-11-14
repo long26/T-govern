@@ -2,6 +2,8 @@
 
 Built on a fork of go-ethereum v1.9.11.
 
+For the non-interactive Code Ocean entry point and SGX SIM environment setup, see [Run on Code Ocean](CODE_OCEAN.md).
+
 ```
 Tgovern/
 ├── redactable-goethereum-tgovern/     # Tgovern
@@ -129,13 +131,17 @@ $GETH --datadir chain/node1 --networkid 12345 --port 30301 --maxpeers 128 \
 
 | System | Entry point |
 | --- | --- |
-| Tgovern | `tgovern/scripts/sgx_l5_sim_e2e.py` (end-to-end), `run-sgx-l5-samples.py` (multi-round sampling), `collect-l5-timing.py` (timing aggregation) |
-| Wolverine | `nitch/scripts/run_perf.sh` (orchestrator: DKG → rotation/edit loop → archive), `collect_perf.py` (results) |
+| Tgovern | `CO_EXPERIMENT=sgx bash run`; enclave-backed `sgx_l5_sim_e2e.py`, sampling and L5 timing collection |
+| NITCH / Wolverine | `CO_EXPERIMENT=nitch bash run`; native `scripts/nitch_e2e.py` and `scripts/collect_perf.py` under `redactable-goethereum-wolverine` |
+
+Run from the repository root in the prepared environment:
 
 ```bash
-# Tgovern
-python3 scripts/sgx_l5_sim_e2e.py --nodes 9 --committee 8
+# Tgovern, also the default when CO_EXPERIMENT is unset.
+CO_EXPERIMENT=sgx bash run
 
-# Wolverine
-scripts/run_perf.sh --committee 4 --nodes 10 --rate 50 --edits 5 --rotations 3 --tag R1
+# Native NITCH/Wolverine, with its separate offline dependency archive.
+CO_EXPERIMENT=nitch bash run
 ```
+
+See [Code Ocean setup](CODE_OCEAN.md) for cache preparation, result paths, and the native adapter's current validation status.
