@@ -20,9 +20,11 @@ from eth_account import Account
 
 ROOT = Path(__file__).resolve().parents[1]
 OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-COMMITTEE = ('node-1', 'node-2', 'node-3', 'node-4')
-CANDIDATES = ('node-2', 'node-3', 'node-4', 'node-5')
-QUORUM = 3
+COMMITTEE_SIZE = 16
+QUORUM = 9
+NODE_COUNT = COMMITTEE_SIZE + 2
+COMMITTEE = tuple(f'node-{index}' for index in range(1, COMMITTEE_SIZE + 1))
+CANDIDATES = tuple(f'node-{index}' for index in range(2, COMMITTEE_SIZE + 2))
 EPOCH_BLOCKS = 64
 
 
@@ -81,7 +83,7 @@ class Experiment:
         self.output = args.output
         self.work = args.workdir
         self.evidence = {'verified': False, 'rotation_count': 0, 'edit_count': 0,
-                         'node_count': 6, 'rotations': [], 'edits': []}
+                         'node_count': NODE_COUNT, 'rotations': [], 'edits': []}
         self.manifest = {}
 
     def anchor(self, stage: str, event: str, **fields):
@@ -117,7 +119,7 @@ class Experiment:
         (self.output / 'logs').mkdir()
         password = self.work / 'password.txt'
         password.write_text('capsule-fixture\n')
-        for index in range(1, 7):
+        for index in range(1, NODE_COUNT + 1):
             account = Account.create()
             self.nodes.append(Node(index, self.work / 'chain' / f'node{index}', account.address,
                                    account.key.hex().removeprefix('0x')))
@@ -143,15 +145,15 @@ class Experiment:
         self.manifest = {
             'schema_version': 1, 'timing_schema_version': 3, 'run_id': self.args.run_id,
             'profile': 'offline-functional-no-netem',
-            'counts': {'total': 6, 'core': 5, 'committee': 4, 'light': 0, 'ledger_observer': 1},
+            'counts': {'total': NODE_COUNT, 'core': NODE_COUNT - 1, 'committee': COMMITTEE_SIZE, 'light': 0, 'ledger_observer': 1},
             'threshold': {'required_shares': QUORUM, 'polynomial_degree': QUORUM - 1},
-            'topology': {'mode': 'full_mesh', 'node_count': 6, 'diameter': 1, 'acceptance': {'status': 'pending'}},
+            'topology': {'mode': 'full_mesh', 'node_count': NODE_COUNT, 'diameter': 1, 'acceptance': {'status': 'pending'}},
             'relay_ttl': {'distkg': 8, 'reshare': 8, 'modify': 8},
             'verification_nodes': [node.node_id for node in self.nodes],
-            'ledger_observer': {'index': 6, 'role': 'ledger_observer', 'headline_comparable': True},
+            'ledger_observer': {'index': NODE_COUNT, 'role': 'ledger_observer', 'headline_comparable': True},
             'ledger_update_e2e': {'polling_interval_ms': 500},
             'nodes': [{'node_id': node.node_id, 'index': node.index, 'verification': True,
-                       'role': 'ledger_observer' if node.index == 6 else 'core'} for node in self.nodes],
+                       'role': 'ledger_observer' if node.index == NODE_COUNT else 'core'} for node in self.nodes],
             'election': {'epoch_blocks': EPOCH_BLOCKS, 'initial_epoch': 1, 'initial_committee': list(COMMITTEE),
                          'candidates': list(CANDIDATES), 'difficulty': 1, 'manual_initial_release': True},
             'requested': {'rotations': self.args.rotations, 'edits_per_epoch': self.args.edits},
@@ -162,11 +164,11 @@ class Experiment:
         for node in self.nodes:
             env = dict({name: value for name, value in os.environ.items() if not name.startswith('NITCH_')},
                        NITCH_NODE_ID=node.node_id, NITCH_NODE_INDEX=str(node.index),
-                       NITCH_NODE_ROLE='ledger_observer' if node.index == 6 else 'core',
+                       NITCH_NODE_ROLE='ledger_observer' if node.index == NODE_COUNT else 'core',
                        NITCH_THRESHOLD=str(QUORUM), NITCH_ACTIVE_COMMITTEE_THRESHOLD=str(QUORUM - 1),
                        NITCH_ACTIVE_COMMITTEE_MEMBERS=','.join(COMMITTEE), NITCH_ACTIVE_COMMITTEE_EPOCH='1',
                        NITCH_ACTIVE_COMMITTEE_ACTIVATE_AT='0', NITCH_EPOCH_LENGTH=str(EPOCH_BLOCKS),
-                       NITCH_POW_COMMITTEE_SIZE='4', NITCH_POW_THRESHOLD=str(QUORUM - 1),
+                       NITCH_POW_COMMITTEE_SIZE=str(COMMITTEE_SIZE), NITCH_POW_THRESHOLD=str(QUORUM - 1),
                        NITCH_POW_DIFFICULTY='1', NITCH_POW_INITIAL_MANUAL_RELEASE='1',
                        NITCH_POW_WORKER_ENABLED='1' if node.node_id in CANDIDATES else '0',
                        NITCH_DISTKG_RELAY_TTL='8', NITCH_RESHARE_RELAY_TTL='8', NITCH_MODIFY_RELAY_TTL='8',
@@ -196,13 +198,13 @@ class Experiment:
             for target in self.nodes:
                 if source is not target:
                     source.rpc('admin_addPeer', [enodes[target.node_id]])
-        self.wait('full-mesh peer connections', lambda: all(len(node.rpc('admin_peers')) >= 5 for node in self.nodes), 180)
+        self.wait('full-mesh peer connections', lambda: all(len(node.rpc('admin_peers')) >= NODE_COUNT - 1 for node in self.nodes), 180)
         self.manifest['topology']['acceptance']['status'] = 'ok'
         self.manifest['process_ids'] = {node.node_id: node.process.pid for node in self.nodes}
         write_json(self.output / 'run-manifest.json', self.manifest)
 
     def dkg(self):
-        for node in self.nodes[:4]:
+        for node in self.nodes[:COMMITTEE_SIZE]:
             if not node.rpc('eth_dkgStatus').get('extracted'):
                 try:
                     node.rpc('eth_startDKG')
@@ -211,7 +213,7 @@ class Experiment:
                         raise
         def ready():
             statuses = [node.rpc('eth_dkgStatus') for node in self.nodes]
-            return statuses if all(item.get('publicKeyReady') for item in statuses) and all(item.get('extracted') for item in statuses[:4]) else None
+            return statuses if all(item.get('publicKeyReady') for item in statuses) and all(item.get('extracted') for item in statuses[:COMMITTEE_SIZE]) else None
         statuses = self.wait('DistKG extraction and public-key dissemination', ready)
         self.evidence['dkg'] = statuses
         self.anchor('system_init', 'phase_end', required_shares=QUORUM, status='ok')
@@ -291,7 +293,7 @@ class Experiment:
                   'verified_nodes': [node.node_id for node in self.nodes]}
         self.evidence['edits'].append(result)
         self.evidence['edit_count'] += 1
-        self.anchor('ledger_update_e2e', 'verified_all', join_key=join_key, status='ok', verified_nodes=6)
+        self.anchor('ledger_update_e2e', 'verified_all', join_key=join_key, status='ok', verified_nodes=NODE_COUNT)
 
     def run(self):
         self.anchor('system_init', 'phase_start')

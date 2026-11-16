@@ -57,6 +57,17 @@ class ResultExportTests(unittest.TestCase):
             text = path.read_text(encoding='utf-8')
             self.assertEqual(text, 'stage,count,mean_ms\nedit_execution,5,12\n')
 
+    def test_in_place_export_replaces_legacy_detail_reports(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / 'run'
+            self.fixture(root)
+            detail = root / 'nitch/run-001/timing/timing-report.md'
+            detail.parent.mkdir(parents=True)
+            detail.write_text('Definition native_prepare_to_dkg_ready transaction_generation', encoding='utf-8')
+            export_results(root, root, in_place=True)
+            self.assertEqual(detail.read_text(encoding='utf-8'), (root / 'report.md').read_text(encoding='utf-8'))
+            self.assertNotIn('Definition', detail.read_text(encoding='utf-8'))
+
     def test_shamir_does_not_invent_block_metrics(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

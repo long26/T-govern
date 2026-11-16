@@ -5,7 +5,15 @@ from types import SimpleNamespace
 import unittest
 
 import collect_perf
-from nitch_e2e import Experiment, InvariantViolation, verify_block
+from nitch_e2e import Experiment, InvariantViolation, verify_block, COMMITTEE, CANDIDATES, QUORUM, NODE_COUNT
+
+
+class NativeDefaultsTests(unittest.TestCase):
+    def test_default_committee_and_candidate_sets(self):
+        self.assertEqual((len(COMMITTEE), len(CANDIDATES), QUORUM, NODE_COUNT), (16, 16, 9, 18))
+        self.assertEqual(set(COMMITTEE) - set(CANDIDATES), {'node-1'})
+        self.assertEqual(set(CANDIDATES) - set(COMMITTEE), {'node-17'})
+        self.assertNotIn('node-18', set(COMMITTEE) | set(CANDIDATES))
 
 
 class BlockVerificationTests(unittest.TestCase):

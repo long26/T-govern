@@ -283,11 +283,11 @@ def run_experiments(config: Config, output: Path, log) -> None:
             for key in ('TEE_ROTATIONS', 'TEE_EDITS_PER_EPOCH', 'TEE_BASELINE_EDITS'):
                 env.pop(key, None)
             env['TEE_STEADY_EPOCH_LENGTH'] = str(config.steady_epoch_length)
-            env.setdefault('TEE_ACTIVE_LIMIT', '4')
-            env.setdefault('TEE_ACTIVE_THRESHOLD', '3')
-            env.setdefault('TEE_CANDIDATE_COUNT', '4')
-            env.setdefault('COMMITTEE_COUNT', env.get('TEE_COMMITTEE_COUNT', '4'))
-            env.setdefault('COMMITTEE_THRESHOLD', env.get('TEE_COMMITTEE_THRESHOLD', '3'))
+            env.setdefault('TEE_ACTIVE_LIMIT', '16')
+            env.setdefault('TEE_ACTIVE_THRESHOLD', '9')
+            env.setdefault('TEE_CANDIDATE_COUNT', '16')
+            env.setdefault('COMMITTEE_COUNT', env.get('TEE_COMMITTEE_COUNT', '16'))
+            env.setdefault('COMMITTEE_THRESHOLD', env.get('TEE_COMMITTEE_THRESHOLD', '9'))
             call(['go', 'test', '-tags', 'sgx', '-run', 'TestPartialAdaptContributionCrossLib', '-v', './sgx/'], geth)
             call([str(binary), 'makedag', '0', str(dataset_dir)], geth)
             try:

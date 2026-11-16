@@ -253,7 +253,12 @@ def export_results(result_dir: Path, output_dir: Path, status=None, in_place=Fal
              '', '| Stage | Samples | Mean (ms) | P50 (ms) | P95 (ms) |', '|---|---:|---:|---:|---:|']
     lines.extend(f'| {m["stage"]} | {m["raw_count"]} | {m["raw_mean_ms"]} | {m["p50_ms"]} | {m["p95_ms"]} |'
                  for m in metrics if m['stage'] not in HIDDEN_STAGES and m['availability'] == 'available')
-    (output_dir / 'report.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+    report = '\n'.join(lines) + '\n'
+    (output_dir / 'report.md').write_text(report, encoding='utf-8')
+    if in_place:
+        for project in ('nitch', 'sgx-sim', 'sgx-last-run'):
+            for path in (result_dir / project).rglob('*report.md'):
+                path.write_text(report, encoding='utf-8')
     return summary
 
 

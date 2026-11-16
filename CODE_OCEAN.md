@@ -85,7 +85,7 @@ bash run --check
 CO_EXPERIMENT=nitch bash run --check
 ```
 
-The profiles default to one fresh run, one rotation, and five edits. Tgovern has four TEEs with a three-share threshold and a four-member signing committee with a three-share threshold. Its steady epoch is 200 blocks. The initial registration epoch is unchanged. NITCH has four initial committee members, a three-share threshold, a spare candidate, and a separate ledger observer across six geth processes.
+The profiles default to one fresh run, one rotation, and five edits. Tgovern has sixteen TEEs with a nine-share threshold and a sixteen-member signing committee with a nine-share threshold. Its steady epoch is 200 blocks. The initial registration epoch is unchanged. NITCH has sixteen initial committee members, a nine-share threshold, a spare candidate, and a separate ledger observer across eighteen geth processes.
 
 Set `CO_RUNS`, `CO_ROTATIONS`, and `CO_EDITS` to override repetition. `TEE_STEADY_EPOCH_LENGTH` overrides Tgovern's steady epoch; `STEADY_EPOCH_LENGTH` is a lower-priority alias. Those settings do not change native NITCH epochs. Keep enough blocks for all transaction confirmations and edits before the next epoch boundary. Increasing only the wall-clock timeout does not prevent an epoch-mismatched authorization.
 
