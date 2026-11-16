@@ -18,7 +18,9 @@ METRIC_FIELDS = ('system', 'run_id', 'sample_run', 'stage', 'metric_definition',
 SAMPLE_FIELDS = ('system', 'run_id', 'sample_run', 'stage', 'metric_definition', 'stratum',
                  'sample_id', 'duration_ms', 'epoch', 'request_id', 'node_id', 'status', 'source')
 HIDDEN_STAGES = {'transaction_generation', 'transaction_validation', 'execute_redaction_confirmation',
-                 'ledger_update_e2e', 'ledger_update_total', 'rotation_bootstrap'}
+                 'ledger_update_e2e', 'ledger_update_total', 'rotation_bootstrap',
+                 'block_finalize_cpu', 'ledger_convergence', 'miner_sealing_queue_wait',
+                 'rotation_flow_round', 'rotation_flow_span'}
 CSV_METRIC_FIELDS = tuple(field for field in METRIC_FIELDS
                           if field not in {'metric_definition', 'stratum', 'basis', 'source', 'availability'})
 CSV_SAMPLE_FIELDS = tuple(field for field in SAMPLE_FIELDS

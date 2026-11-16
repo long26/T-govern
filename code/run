@@ -2,4 +2,13 @@
 set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 export PATH="/opt/tgovern/venv/bin:/opt/tgovern/go/bin:$PATH"
+if [[ $# -gt 0 && "$1" != --* ]]; then
+    case "$1" in
+        tgovern) export CO_EXPERIMENT=sgx ;;
+        wolverine) export CO_EXPERIMENT=nitch ;;
+        *) printf 'Select tgovern or wolverine\n' >&2; exit 2 ;;
+    esac
+    shift
+fi
+export CO_EXPERIMENT="${CO_EXPERIMENT:-sgx}"
 exec "${PYTHON_BIN:-python3}" "$ROOT/capsule/run_capsule.py" "$@"
